@@ -200,56 +200,63 @@ class SerialReaderApp:
         hdop = gps_data.get('hdop', 0.0)
         timestamp = gps_data.get('time', '')
         speed = gps_data.get('speed', 0.0)
-        # Estado antena
+        # Antenna status
         antenna = self.gps_info.get('antenna')
         if antenna and antenna != 'OK':
             return {
                 'status': 'critical',
-                'message': f'Problema con la antena: {antenna}',
+                'message': f"Antenna problem detected: '{antenna}'. Please check the antenna connection and ensure it is properly attached.",
                 'timestamp': timestamp
             }
-        # Estados de señal y precisión
+        # Signal and accuracy states
         if fix < 1 or satellites == 0:
             return {
                 'status': 'critical',
-                'message': 'Sin señal GPS o sin fix.',
+                'message': 'No GPS signal or fix acquired. Please check the antenna and ensure the device has a clear view of the sky.',
                 'timestamp': timestamp
             }
         elif satellites < 4:
             return {
                 'status': 'warning',
-                'message': f'Pocos satélites ({satellites}). Precisión baja.',
+                'message': f'Only {satellites} satellites in view. GPS accuracy may be degraded. Try moving to an open area for better signal.',
                 'timestamp': timestamp
             }
         elif hdop > 5:
             return {
                 'status': 'critical',
-                'message': f'HDOP muy alto ({hdop}). Precisión muy baja.',
+                'message': f'HDOP is very high ({hdop}), indicating very poor GPS accuracy. Try to improve satellite visibility.',
                 'timestamp': timestamp
             }
         elif hdop > 2.5:
             return {
                 'status': 'warning',
-                'message': f'HDOP alto ({hdop}). Precisión degradada.',
+                'message': f'HDOP is high ({hdop}), GPS accuracy is degraded. Try to move to an open area.',
                 'timestamp': timestamp
             }
-        # Estado de movimiento
+        # Movement state
         if speed > 0.5:
-            mov = f'En movimiento ({speed} nudos)'
+            mov = f'Moving (speed: {speed} knots)'
         else:
-            mov = 'Detenido'
+            mov = 'Stopped'
         return {
             'status': 'ok',
-            'message': f'GPS funcionando correctamente. {mov}',
+            'message': f'GPS is working correctly. Device is {mov}.',
             'timestamp': timestamp
         }
 
     @staticmethod
     @flask_app.route('/api/gps-status', methods=['GET'])
     def api_gps_status():
+        device_descriptions = {
+            '$GNRMC': 'Recommended Minimum Specific GNSS Data: Provides essential information such as time, fix status, latitude, longitude, speed, and date.',
+            '$GNGGA': 'Global Positioning System Fix Data: Provides position data including time, latitude, longitude, fix quality, number of satellites, HDOP, and altitude.',
+            '$GNGSA': 'GNSS DOP and Active Satellites: Shows fix type, satellites used, and DOP values (PDOP, HDOP, VDOP).',
+            '$GPGSV': 'GNSS Satellites in View: Lists visible satellites, their elevation, azimuth, and SNR.'
+        }
         statuses = [
             {
                 'device': device_id,
+                'device_description': device_descriptions.get(device_id, 'Unknown NMEA sentence type.'),
                 'lat': data['lat'],
                 'lon': data['lon'],
                 'fix': data['fix'],

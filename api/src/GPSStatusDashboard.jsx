@@ -6,6 +6,7 @@ const GPSStatusDashboard = () => {
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [logs, setLogs] = useState([]);
+  const [emergentLogs, setEmergentLogs] = useState([]);
 
   useEffect(() => {
     const fetchGPSData = async () => {
@@ -31,8 +32,24 @@ const GPSStatusDashboard = () => {
         }
         const data = await response.json();
         setLogs(data.logs || []);
+        // Detect emergent logs (e.g., lines containing [EMERG] or [IMPORTANT])
+        const now = Date.now();
+        const newEmergents = (data.logs || [])
+          .filter((line) => /\[(EMERG|IMPORTANT)\]/i.test(line))
+          .map((line) => ({ line, timestamp: now }));
+        // Only add new emergent logs that are not already present
+        setEmergentLogs((prev) => {
+          // Remove expired logs
+          const filtered = prev.filter((l) => now - l.timestamp < 60000);
+          // Add new logs if not already present
+          const linesSet = new Set(filtered.map((l) => l.line));
+          newEmergents.forEach((l) => {
+            if (!linesSet.has(l.line)) filtered.push(l);
+          });
+          return filtered;
+        });
       } catch (err) {
-        // Opcional: setError(err.message);
+        // Optional: setError(err.message);
       }
     };
 
@@ -41,6 +58,10 @@ const GPSStatusDashboard = () => {
     const interval = setInterval(() => {
       fetchGPSData();
       fetchLogs();
+      // Remove expired emergent logs
+      setEmergentLogs((prev) =>
+        prev.filter((l) => Date.now() - l.timestamp < 60000)
+      );
     }, 5000);
 
     return () => clearInterval(interval);
@@ -57,6 +78,17 @@ const GPSStatusDashboard = () => {
   return (
     <div className="gps-dashboard">
       <h1>GPS Status Dashboard</h1>
+      {/* Emergent logs panel */}
+      {emergentLogs.length > 0 && (
+        <div className="emergent-logs-panel">
+          <h2>Emergent Logs</h2>
+          <ul>
+            {emergentLogs.map((log, idx) => (
+              <li key={idx}>{log.line}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       <table>
         <thead>
           <tr>
