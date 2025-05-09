@@ -2,6 +2,12 @@ import tkinter as tk
 from tkinter import filedialog
 import serial
 import threading
+from flask import Flask, jsonify
+
+# In-memory data store for GPS readings
+gps_data_store = {}
+
+app = Flask(__name__)
 
 class SerialReaderApp:
     def __init__(self, root):
@@ -51,6 +57,15 @@ class SerialReaderApp:
                     self.data_buffer.append(line)
                     self.text_area.insert(tk.END, line + "\n")
                     self.text_area.see(tk.END)
+
+                    # Parse and update GPS data for the device
+                    parsed_data = self.parse_gps_data(line)
+                    if parsed_data:
+                        self.update_gps_data(parsed_data['deviceId'], parsed_data)
+
+                        # Evaluate GPS status and store the last known "alarm status"
+                        gps_status = self.evaluate_gps_status(parsed_data)
+                        gps_data_store[parsed_data['deviceId']]['alarm_status'] = gps_status
             except serial.SerialException as e:
                 self.text_area.insert(tk.END, f"Error: {e}\n")
                 break
@@ -61,7 +76,89 @@ class SerialReaderApp:
             with open(file_path, 'w') as file:
                 file.write("\n".join(self.data_buffer))
 
+    def parse_gps_data(self, data):
+        # Dummy implementation for parsing GPS data
+        # Replace with actual parsing logic
+        try:
+            parts = data.split(',')
+            return {
+                'deviceId': parts[0],
+                'time': parts[1],
+                'lat': float(parts[2]),
+                'lon': float(parts[3]),
+                'fix': int(parts[4]),
+                'satelliteCount': int(parts[5]),
+                'hdop': float(parts[6]),
+                'altitude': float(parts[7])
+            }
+        except (IndexError, ValueError):
+            return None
+
+    def update_gps_data(self, device_id, parsed_data):
+        # Update the in-memory store with the latest GPS data for the given device
+        gps_data_store[device_id] = {
+            'timestamp': parsed_data['time'],
+            'lat': parsed_data['lat'],
+            'lon': parsed_data['lon'],
+            'fix': parsed_data['fix'],
+            'satellites': parsed_data['satelliteCount'],
+            'hdop': parsed_data['hdop'],
+            'altitude': parsed_data['altitude']
+        }
+
+    def get_gps_data(self, device_id):
+        # Return the latest GPS data for the given device or null if not found
+        return gps_data_store.get(device_id, None)
+
+    def evaluate_gps_status(self, gps_data):
+        fix = gps_data.get('fix', 0)
+        satellites = gps_data.get('satelliteCount', 0)
+        hdop = gps_data.get('hdop', 0.0)
+        timestamp = gps_data.get('time', '')
+
+        if fix < 1:
+            return {
+                'status': 'critical',
+                'message': 'No fix',
+                'timestamp': timestamp
+            }
+        elif satellites < 4:
+            return {
+                'status': 'warning',
+                'message': 'Satellite count low',
+                'timestamp': timestamp
+            }
+        elif hdop > 2.5:
+            return {
+                'status': 'warning',
+                'message': 'HDOP too high',
+                'timestamp': timestamp
+            }
+        else:
+            return {
+                'status': 'ok',
+                'message': 'All parameters nominal',
+                'timestamp': timestamp
+            }
+
+    @app.route('/api/gps-status', methods=['GET'])
+    def api_gps_status():
+        statuses = [
+            {
+                'device': device_id,
+                'lat': data['lat'],
+                'lon': data['lon'],
+                'fix': data['fix'],
+                'status': data['alarm_status']['status'] if 'alarm_status' in data else "unknown",
+                'message': data['alarm_status']['message'] if 'alarm_status' in data else "No status available",
+                'timestamp': data['timestamp']
+            }
+            for device_id, data in gps_data_store.items()
+        ]
+        return jsonify(statuses)
+
 if __name__ == "__main__":
     root = tk.Tk()
     app = SerialReaderApp(root)
     root.mainloop()
+    app.run(port=3000, debug=True)
