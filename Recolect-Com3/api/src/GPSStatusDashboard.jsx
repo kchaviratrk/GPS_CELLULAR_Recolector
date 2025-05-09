@@ -5,6 +5,7 @@ const GPSStatusDashboard = () => {
   const [gpsData, setGpsData] = useState([]);
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [logs, setLogs] = useState([]);
 
   useEffect(() => {
     const fetchGPSData = async () => {
@@ -22,8 +23,25 @@ const GPSStatusDashboard = () => {
       }
     };
 
+    const fetchLogs = async () => {
+      try {
+        const response = await fetch("/api/logs");
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setLogs(data.logs || []);
+      } catch (err) {
+        // Opcional: setError(err.message);
+      }
+    };
+
     fetchGPSData();
-    const interval = setInterval(fetchGPSData, 5000);
+    fetchLogs();
+    const interval = setInterval(() => {
+      fetchGPSData();
+      fetchLogs();
+    }, 5000);
 
     return () => clearInterval(interval);
   }, []);
@@ -67,6 +85,20 @@ const GPSStatusDashboard = () => {
           ))}
         </tbody>
       </table>
+      <div className="logs-panel">
+        <h2>Logs del Puerto COM3</h2>
+        <div className="logs-content">
+          {logs.length === 0 ? (
+            <div>No hay logs recientes.</div>
+          ) : (
+            <pre>
+              {logs.map((line, idx) => (
+                <div key={idx}>{line}</div>
+              ))}
+            </pre>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

@@ -3,17 +3,22 @@ from tkinter import filedialog
 import serial
 import threading
 from flask import Flask, jsonify
+import re
 
 # In-memory data store for GPS readings
 gps_data_store = {}
 
-app = Flask(__name__)
+flask_app = Flask(__name__)
 
 class SerialReaderApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Serial Port Reader")
-
+        self.gps_info = {
+            'model': None,
+            'firmware': None,
+            'antenna': None
+        }
         # Serial port configuration
         self.serial_port = None
         self.is_reading = False
@@ -77,22 +82,101 @@ class SerialReaderApp:
                 file.write("\n".join(self.data_buffer))
 
     def parse_gps_data(self, data):
-        # Dummy implementation for parsing GPS data
-        # Replace with actual parsing logic
+        # Procesamiento robusto de sentencias NMEA y almacenamiento de info extra
         try:
-            parts = data.split(',')
-            return {
-                'deviceId': parts[0],
-                'time': parts[1],
-                'lat': float(parts[2]),
-                'lon': float(parts[3]),
-                'fix': int(parts[4]),
-                'satelliteCount': int(parts[5]),
-                'hdop': float(parts[6]),
-                'altitude': float(parts[7])
-            }
-        except (IndexError, ValueError):
+            if data.startswith('$GNGGA'):
+                parts = data.split(',')
+                if len(parts) >= 15:
+                    lat = self.nmea_to_decimal(parts[2], parts[3])
+                    lon = self.nmea_to_decimal(parts[4], parts[5])
+                    fix = int(parts[6])
+                    satellites = int(parts[7])
+                    hdop = float(parts[8])
+                    altitude = float(parts[9])
+                    return {
+                        'deviceId': '$GNGGA',
+                        'time': parts[1],
+                        'lat': lat,
+                        'lon': lon,
+                        'fix': fix,
+                        'satelliteCount': satellites,
+                        'hdop': hdop,
+                        'altitude': altitude
+                    }
+            elif data.startswith('$GNGSA'):
+                parts = data.split(',')
+                if len(parts) >= 17:
+                    fix = int(parts[2]) if parts[2].isdigit() else 0
+                    pdop = float(parts[15]) if parts[15] else 0.0
+                    hdop = float(parts[16]) if parts[16] else 0.0
+                    vdop = float(parts[17].split('*')[0]) if '*' in parts[17] else float(parts[17]) if parts[17] else 0.0
+                    return {
+                        'deviceId': '$GNGSA',
+                        'time': '',
+                        'lat': 0.0,
+                        'lon': 0.0,
+                        'fix': fix,
+                        'satelliteCount': 0,
+                        'hdop': hdop,
+                        'altitude': 0.0,
+                        'pdop': pdop,
+                        'vdop': vdop
+                    }
+            elif data.startswith('$GPGSV'):
+                parts = data.split(',')
+                if len(parts) >= 4:
+                    satellites = int(parts[3]) if parts[3].isdigit() else 0
+                    return {
+                        'deviceId': '$GPGSV',
+                        'time': '',
+                        'lat': 0.0,
+                        'lon': 0.0,
+                        'fix': 0,
+                        'satelliteCount': satellites,
+                        'hdop': 0.0,
+                        'altitude': 0.0
+                    }
+            elif data.startswith('$GNRMC'):
+                parts = data.split(',')
+                if len(parts) >= 12:
+                    speed = float(parts[7]) if parts[7] else 0.0
+                    return {
+                        'deviceId': '$GNRMC',
+                        'time': parts[1],
+                        'lat': self.nmea_to_decimal(parts[3], parts[4]),
+                        'lon': self.nmea_to_decimal(parts[5], parts[6]),
+                        'fix': 1 if parts[2] == 'A' else 0,
+                        'satelliteCount': 0,
+                        'hdop': 0.0,
+                        'altitude': 0.0,
+                        'speed': speed
+                    }
+            elif data.startswith('$GNTXT'):
+                # Modelo, firmware, antena
+                if 'MOD=' in data:
+                    self.gps_info['model'] = data.split('MOD=')[1].split('*')[0]
+                if 'FWVER=' in data:
+                    self.gps_info['firmware'] = data.split('FWVER=')[1].split('*')[0]
+                if 'ANTSTATUS=' in data:
+                    self.gps_info['antenna'] = data.split('ANTSTATUS=')[1].split('*')[0]
+        except Exception:
             return None
+        return None
+
+    def nmea_to_decimal(self, value, direction):
+        # Convierte coordenadas NMEA a decimal
+        try:
+            if not value or not direction:
+                return 0.0
+            deg_len = 2 if direction in ['N', 'S'] else 3
+            degrees = float(value[:deg_len])
+            minutes = float(value[deg_len:])
+            decimal = degrees + minutes / 60
+            if direction in ['S', 'W']:
+                decimal = -decimal
+            return decimal
+        except Exception:
+            return 0.0
 
     def update_gps_data(self, device_id, parsed_data):
         # Update the in-memory store with the latest GPS data for the given device
@@ -115,33 +199,53 @@ class SerialReaderApp:
         satellites = gps_data.get('satelliteCount', 0)
         hdop = gps_data.get('hdop', 0.0)
         timestamp = gps_data.get('time', '')
-
-        if fix < 1:
+        speed = gps_data.get('speed', 0.0)
+        # Estado antena
+        antenna = self.gps_info.get('antenna')
+        if antenna and antenna != 'OK':
             return {
                 'status': 'critical',
-                'message': 'No fix',
+                'message': f'Problema con la antena: {antenna}',
+                'timestamp': timestamp
+            }
+        # Estados de señal y precisión
+        if fix < 1 or satellites == 0:
+            return {
+                'status': 'critical',
+                'message': 'Sin señal GPS o sin fix.',
                 'timestamp': timestamp
             }
         elif satellites < 4:
             return {
                 'status': 'warning',
-                'message': 'Satellite count low',
+                'message': f'Pocos satélites ({satellites}). Precisión baja.',
+                'timestamp': timestamp
+            }
+        elif hdop > 5:
+            return {
+                'status': 'critical',
+                'message': f'HDOP muy alto ({hdop}). Precisión muy baja.',
                 'timestamp': timestamp
             }
         elif hdop > 2.5:
             return {
                 'status': 'warning',
-                'message': 'HDOP too high',
+                'message': f'HDOP alto ({hdop}). Precisión degradada.',
                 'timestamp': timestamp
             }
+        # Estado de movimiento
+        if speed > 0.5:
+            mov = f'En movimiento ({speed} nudos)'
         else:
-            return {
-                'status': 'ok',
-                'message': 'All parameters nominal',
-                'timestamp': timestamp
-            }
+            mov = 'Detenido'
+        return {
+            'status': 'ok',
+            'message': f'GPS funcionando correctamente. {mov}',
+            'timestamp': timestamp
+        }
 
-    @app.route('/api/gps-status', methods=['GET'])
+    @staticmethod
+    @flask_app.route('/api/gps-status', methods=['GET'])
     def api_gps_status():
         statuses = [
             {
@@ -157,8 +261,30 @@ class SerialReaderApp:
         ]
         return jsonify(statuses)
 
+    @staticmethod
+    @flask_app.route('/api/gps-info', methods=['GET'])
+    def api_gps_info():
+        # Devuelve modelo, firmware y estado de antena
+        app = SerialReaderApp
+        return jsonify({
+            'model': getattr(app, 'gps_info', {}).get('model', None),
+            'firmware': getattr(app, 'gps_info', {}).get('firmware', None),
+            'antenna': getattr(app, 'gps_info', {}).get('antenna', None)
+        })
+
+    @staticmethod
+    @flask_app.route('/api/logs', methods=['GET'])
+    def api_logs():
+        app = SerialReaderApp
+        # Devuelve las últimas 100 líneas del buffer de logs
+        logs = getattr(app, 'data_buffer', [])[-100:]
+        return jsonify({'logs': logs})
+
+def run_flask():
+    flask_app.run(port=3000, debug=True, use_reloader=False)
+
 if __name__ == "__main__":
+    threading.Thread(target=run_flask, daemon=True).start()
     root = tk.Tk()
     app = SerialReaderApp(root)
     root.mainloop()
-    app.run(port=3000, debug=True)
