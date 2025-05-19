@@ -1,0 +1,93 @@
+# Cellular Monitor - Resumen de funcionalidades y arquitectura
+
+Este sistema monitorea el estado de un módem celular, obtiene la calidad de señal, registra eventos y genera alertas si hay problemas. Incluye un backend (API), un frontend (dashboard web) y una lógica de simulación para pruebas sin hardware.
+
+---
+
+## 1. Backend (API)
+
+- **Ubicación:** `backend/`
+- **Framework:** FastAPI
+- **Archivo principal:** `backend/main.py`
+- **Funcionalidad:**
+  - Expone endpoints HTTP para consultar el estado del módem (`/status`), alertas (`/alerts`) y logs (`/logs`).
+  - Puede funcionar en modo simulado (sin hardware) o real (usando el módem físico).
+  - Integra con `modem_driver.py` para obtener datos reales del módem usando comandos AT vía pyserial.
+  - Simula fluctuaciones de señal, generación de alertas y logs cuando está en modo demo.
+
+### Endpoints principales
+- `GET /status`: Devuelve si el módem está conectado, la señal y si la SIM está presente.
+- `GET /alerts`: Últimas alertas generadas (por baja señal, etc).
+- `GET /logs`: Últimos eventos registrados (por ejemplo, cambios de señal).
+
+---
+
+## 2. Lógica de negocio (src/)
+
+- **Ubicación:** `src/`
+- **Componentes:**
+  - `modem.py`: Clase `Modem` para interactuar con el hardware o simular respuestas. Permite enviar comandos AT y obtener la calidad de señal.
+  - `config.py`: Carga la configuración desde variables de entorno (puerto, umbral de alerta, baudrate, modo simulación).
+  - `alerts.py`: Punto de integración para enviar alertas (por ejemplo, a Slack). Actualmente es un stub.
+  - `utils.py`: Funciones utilitarias, por ejemplo, para formatear la señal.
+  - `main.py`: Punto de entrada para ejecución directa. Permite monitorear la señal en loop y enviar alertas si es necesario. Detecta modo simulación por variable de entorno o argumento.
+
+---
+
+## 3. Frontend (Dashboard web)
+
+- **Ubicación:** `frontend/`
+- **Framework:** React + Vite + Material UI
+- **Componentes principales:**
+  - `ModemStatus`: Muestra el estado actual del módem (conexión, señal, SIM).
+  - `AlertsTable`: Tabla con las alertas recientes.
+  - `SignalChart`: Gráfico de la señal a lo largo del tiempo.
+  - `LogsViewer`: Lista de eventos recientes.
+  - `SettingsPanel`: Permite ajustar el umbral de alerta y el intervalo de chequeo desde la UI.
+- **Comunicación:** El frontend consulta periódicamente los endpoints del backend para actualizar el estado en tiempo real.
+
+---
+
+## 4. Pruebas y cobertura
+
+- **Ubicación:** `tests/`
+- **Cobertura:** Se cubren módulos de lógica (`modem`, `utils`, `config`, `alerts`) y el flujo principal (`main.py`).
+- **Ejecución:**
+  - `python3 -m pytest tests/` para correr los tests.
+  - `python3 -m pytest --cov=src tests/` para ver la cobertura.
+- **Cobertura típica:** 90%+ en lógica, menor en el punto de entrada.
+
+---
+
+## 5. Configuración y modos de operación
+
+- **Modo simulación:**
+  - Se activa por variable de entorno `SIMULATE=True` o argumento `--simulate`.
+  - No requiere hardware, útil para desarrollo y testing.
+- **Modo real:**
+  - Requiere módem físico conectado al puerto especificado (`MODEM_PORT`).
+  - Usa pyserial para enviar comandos AT y leer respuestas.
+
+---
+
+## 6. Buenas prácticas y extensibilidad
+
+- Código modular y documentado.
+- Fácil de extender para nuevas alertas, integraciones (ej: Slack), o hardware.
+- Configuración centralizada y documentada.
+- Tests unitarios y de integración incluidos.
+
+---
+
+## 7. ¿Cómo funciona el flujo general?
+
+1. El backend expone endpoints REST para consultar el estado del módem, alertas y logs.
+2. El frontend consulta estos endpoints y muestra la información en tiempo real.
+3. El sistema puede funcionar en modo simulado o real según configuración.
+4. Si la señal baja del umbral, se genera una alerta (y en el futuro se puede enviar a Slack u otros sistemas).
+5. Todos los eventos relevantes se registran en logs accesibles desde la UI.
+
+---
+
+**Resumen:**
+Este sistema permite monitorear y visualizar el estado de un módem celular, con soporte para simulación, alertas y registro de eventos, y una arquitectura lista para producción y extensible.
