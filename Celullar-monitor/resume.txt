@@ -1,0 +1,93 @@
+# Cellular Monitor - Features and Architecture Overview
+
+This system monitors the status of a cellular modem, retrieves signal quality, logs events, and generates alerts if issues are detected. It includes a backend (API), a frontend (web dashboard), and simulation logic for testing without hardware.
+
+---
+
+## 1. Backend (API)
+
+- **Location:** `backend/`
+- **Framework:** FastAPI
+- **Main file:** `backend/main.py`
+- **Functionality:**
+  - Exposes HTTP endpoints to query modem status (`/status`), alerts (`/alerts`), and logs (`/logs`).
+  - Can run in simulated mode (no hardware) or real mode (using the physical modem).
+  - Integrates with `modem_driver.py` to get real modem data using AT commands via pyserial.
+  - Simulates signal fluctuations, alert generation, and logs when in demo mode.
+
+### Main Endpoints
+- `GET /status`: Returns whether the modem is connected, signal quality, and SIM presence.
+- `GET /alerts`: Latest generated alerts (e.g., low signal).
+- `GET /logs`: Recent events (e.g., signal changes).
+
+---
+
+## 2. Business Logic (src/)
+
+- **Location:** `src/`
+- **Components:**
+  - `modem.py`: `Modem` class to interact with hardware or simulate responses. Allows sending AT commands and retrieving signal quality.
+  - `config.py`: Loads configuration from environment variables (port, alert threshold, baudrate, simulation mode).
+  - `alerts.py`: Integration point for sending alerts (e.g., to Slack). Currently a stub.
+  - `utils.py`: Utility functions, e.g., for formatting signal data.
+  - `main.py`: Entry point for direct execution. Monitors signal in a loop and sends alerts if needed. Detects simulation mode via environment variable or argument.
+
+---
+
+## 3. Frontend (Web Dashboard)
+
+- **Location:** `frontend/`
+- **Framework:** React + Vite + Material UI
+- **Main Components:**
+  - `ModemStatus`: Shows current modem status (connection, signal, SIM).
+  - `AlertsTable`: Table of recent alerts.
+  - `SignalChart`: Signal quality chart over time.
+  - `LogsViewer`: List of recent events.
+  - `SettingsPanel`: Allows adjusting alert threshold and check interval from the UI.
+- **Communication:** The frontend periodically queries backend endpoints to update the status in real time.
+
+---
+
+## 4. Testing and Coverage
+
+- **Location:** `tests/`
+- **Coverage:** Logic modules (`modem`, `utils`, `config`, `alerts`) and main flow (`main.py`).
+- **Execution:**
+  - `python3 -m pytest tests/` to run tests.
+  - `python3 -m pytest --cov=src tests/` to see coverage.
+- **Typical coverage:** 90%+ for logic, lower for entry point.
+
+---
+
+## 5. Configuration and Operation Modes
+
+- **Simulation mode:**
+  - Activated by environment variable `SIMULATE=True` or `--simulate` argument.
+  - No hardware required, useful for development and testing.
+- **Real mode:**
+  - Requires a physical modem connected to the specified port (`MODEM_PORT`).
+  - Uses pyserial to send AT commands and read responses.
+
+---
+
+## 6. Best Practices and Extensibility
+
+- Modular, well-documented code.
+- Easy to extend for new alerts, integrations (e.g., Slack), or hardware.
+- Centralized, documented configuration.
+- Unit and integration tests included.
+
+---
+
+## 7. General Workflow
+
+1. The backend exposes REST endpoints to query modem status, alerts, and logs.
+2. The frontend queries these endpoints and displays information in real time.
+3. The system can run in simulated or real mode depending on configuration.
+4. If the signal drops below the threshold, an alert is generated (and can be sent to Slack or other systems in the future).
+5. All relevant events are logged and accessible from the UI.
+
+---
+
+**Summary:**
+This system allows monitoring and visualizing the status of a cellular modem, with support for simulation, alerts, event logging, and a production-ready, extensible architecture.
