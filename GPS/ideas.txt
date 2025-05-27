@@ -1,0 +1,7 @@
+1. Enviar un "heartbeat" a la tabla trk.hardware en Azure cada 5 o 10 minutos para indicar que el dispositivo GPS está activo y con buena señal.
+2. Definir criterios de "buena señal": fix >= 1, satélites >= 4, HDOP <= 2.5 (ajustable según experiencia).
+3. Automatizar el envío con un job en el backend (setInterval) que revise el estado del GPS y haga el INSERT si cumple los criterios.
+4. Conectar el backend a Azure SQL usando un paquete como mssql para Node.js.
+5. Guardar en la tabla: device_id, timestamp, status (ok, bad_signal, offline), detalles (satélites, hdop, etc.).
+6. Preparar la cadena de conexión y los datos de autenticación para Azure SQL.
+7. (Opcional) Registrar logs de errores o fallos de conexión para monitoreo.

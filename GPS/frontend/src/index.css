@@ -1,0 +1,41 @@
+/* Actualización de colores y estilos para reflejar la identidad de la empresa */
+:root {
+  font-family: "Roboto", sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+  color: #ffffff; /* Cambiar el color de las letras a blanco */
+  background-color: #f9f9f9;
+  --primary-color: #000000; /* Negro */
+  --secondary-color: #ff0000; /* Rojo */
+  --accent-color: #808080; /* Gris */
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: var(--primary-color);
+  color: var(--accent-color);
+}
+
+h1 {
+  font-size: 2.5rem;
+  color: var(--secondary-color);
+}
+
+button {
+  background-color: var(--secondary-color);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  background-color: #cc0000; /* Rojo oscuro */
+}
