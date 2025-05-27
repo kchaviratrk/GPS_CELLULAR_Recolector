@@ -87,9 +87,9 @@ router.get("/api/printer-status", async (req, res) => {
 });
 
 // Add routes for Raspberry Pi devices (BTS01 to BTS05)
-const raspberryPiDevices = devices.filter((device) =>
-  device.name.startsWith("BTS")
-);
+const raspberryPiDevices = Array.isArray(devices)
+  ? devices.filter((device) => device.name.startsWith("BTS"))
+  : [];
 
 // Debugging log to confirm route registration
 console.log("API routes for Raspberry Pi devices registered:");
