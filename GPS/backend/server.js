@@ -80,10 +80,10 @@ app.get("/api/devices", (req, res) => {
   res.json(devices);
 });
 
-// GPS data — proxied from the Python GPS collector (localhost:3000)
+// GPS raw NMEA data — proxied from the Python GPS collector (localhost:3000)
 app.get("/api/gps-serial", async (req, res) => {
   try {
-    const response = await fetch("http://localhost:3000/api/gps-status");
+    const response = await fetch("http://localhost:3000/api/gps-raw");
     const data = await response.json();
     res.json(data);
   } catch {

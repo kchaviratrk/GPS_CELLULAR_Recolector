@@ -1,126 +1,156 @@
 import { useEffect, useState } from "react";
+import "./DeviceStatus.css";
 
-interface Device {
+interface DeviceCard {
   name: string;
   ip: string;
-  status?: string;
+  status: "online" | "offline" | "unknown";
 }
 
-interface GpsSerial {
-  raw: string;
-  timestamp: string;
+interface GpsRaw {
+  time?: string;
+  valid?: boolean;
+  date?: string;
+  sats_visible?: number;
+  fix?: number;
+  sats_used?: number;
+  updated?: string;
+  error?: string;
 }
+
+function formatUtcTime(raw?: string): string {
+  if (!raw || raw.length < 6) return "—";
+  return `${raw.slice(0, 2)}:${raw.slice(2, 4)}:${raw.slice(4, 6)} UTC`;
+}
+
+function formatUtcDate(raw?: string): string {
+  if (!raw || raw.length < 6) return "—";
+  return `${raw.slice(0, 2)}/${raw.slice(2, 4)}/20${raw.slice(4, 6)}`;
+}
+
+const ICON: Record<string, string> = {
+  "GPS 1": "🛰️",
+  "GPS 2": "🛰️",
+  Cellular: "📶",
+};
 
 const DeviceStatus = () => {
-  const [devices, setDevices] = useState<Device[]>([]);
-  const [gpsSerial, setGpsSerial] = useState<GpsSerial | null>(null);
-  const [gpsError, setGpsError] = useState<string | null>(null);
+  const [devices, setDevices] = useState<DeviceCard[]>([]);
+  const [gpsRaw, setGpsRaw] = useState<GpsRaw | null>(null);
 
-  // Fetch device list + ping status once on mount
   useEffect(() => {
     const fetchDevices = async () => {
       try {
-        const response = await fetch("/api/devices");
-        const data: Device[] = await response.json();
+        const res = await fetch("/api/devices");
+        const data: { name: string; ip: string }[] = await res.json();
 
-        const devicesWithStatus = await Promise.all(
-          data.map(async (device: Device) => {
-            if (device.ip) {
-              try {
-                const routeName = device.name.toLowerCase().replace(/\s+/g, "");
-                const statusResponse = await fetch(`/api/${routeName}-status`);
-                const statusData = await statusResponse.json();
-                return { ...device, status: statusData.status };
-              } catch {
-                return { ...device, status: "unknown" };
-              }
-            } else {
-              return { ...device, status: "no ip" };
+        const withStatus = await Promise.all(
+          data.map(async (d) => {
+            const routeName = d.name.toLowerCase().replace(/\s+/g, "");
+            try {
+              const sr = await fetch(`/api/${routeName}-status`);
+              const sd = await sr.json();
+              return { ...d, status: sd.status ?? "unknown" } as DeviceCard;
+            } catch {
+              return { ...d, status: "unknown" as const };
             }
           })
         );
-
-        setDevices(devicesWithStatus);
-      } catch (error) {
-        console.error("Error fetching devices:", error);
+        setDevices(withStatus);
+      } catch (e) {
+        console.error("Error fetching devices:", e);
       }
     };
 
     fetchDevices();
   }, []);
 
-  // Poll live GPS serial data every 5 seconds
   useEffect(() => {
     const fetchGps = async () => {
       try {
         const res = await fetch("/api/gps-serial");
-        if (res.ok) {
-          const data: GpsSerial = await res.json();
-          setGpsSerial(data);
-          setGpsError(null);
-        } else {
-          const err = await res.json();
-          setGpsError(err.error);
-        }
+        if (res.ok) setGpsRaw(await res.json());
+        else setGpsRaw({ error: "GPS collector no disponible" });
       } catch {
-        setGpsError("No se pudo conectar al backend");
+        setGpsRaw({ error: "Sin conexión al backend" });
       }
     };
 
     fetchGps();
-    const interval = setInterval(fetchGps, 5000);
-    return () => clearInterval(interval);
+    const id = setInterval(fetchGps, 5000);
+    return () => clearInterval(id);
   }, []);
 
-  const getStatusClass = (status: string) => {
-    switch (status) {
-      case "online":  return "status-online";
-      case "offline": return "status-offline";
-      case "unknown": return "status-unknown";
-      case "no ip":   return "status-no-ip";
-      default:        return "status-unknown";
-    }
+  const statusLabel = (s: string) => {
+    if (s === "online")  return { text: "En línea",    cls: "badge-online"  };
+    if (s === "offline") return { text: "Sin señal",   cls: "badge-offline" };
+    return               { text: "Desconocido",        cls: "badge-unknown" };
+  };
+
+  const gpsSignalLabel = () => {
+    if (!gpsRaw || gpsRaw.error) return { text: "Sin datos", cls: "badge-unknown" };
+    if (gpsRaw.valid)             return { text: "Fix activo",  cls: "badge-online"  };
+    return                               { text: "Buscando…",   cls: "badge-searching" };
   };
 
   return (
-    <div className="device-status-container">
-      {/* ── GPS en vivo ─────────────────────────────────────────────────── */}
-      <div className="gps-live-panel">
-        <h3>GPS en vivo — COM3</h3>
-        {gpsError ? (
-          <p className="gps-live-error">{gpsError}</p>
-        ) : gpsSerial ? (
-          <>
-            <p className="gps-live-raw">{gpsSerial.raw}</p>
-            <p className="gps-live-ts">Última lectura: {new Date(gpsSerial.timestamp).toLocaleTimeString()}</p>
-          </>
-        ) : (
-          <p className="gps-live-waiting">Esperando datos del puerto serial...</p>
-        )}
+    <div className="ds-container">
+
+      {/* ── Device cards ─────────────────────────────────────── */}
+      <div className="ds-grid">
+        {devices.map((d) => {
+          const { text, cls } = statusLabel(d.status);
+          const isGps = d.name.startsWith("GPS");
+          return (
+            <div key={d.name} className="ds-card">
+              <div className="ds-card-header">
+                <span className="ds-icon">{ICON[d.name] ?? "📡"}</span>
+                <span className="ds-name">{d.name}</span>
+                <span className={`ds-badge ${cls}`}>{text}</span>
+              </div>
+              <div className="ds-card-body">
+                <div className="ds-row"><span>IP</span><span>{d.ip || "—"}</span></div>
+                {isGps && gpsRaw && !gpsRaw.error && (
+                  <>
+                    <div className="ds-row">
+                      <span>Señal</span>
+                      <span className={`ds-badge ${gpsSignalLabel().cls}`}>{gpsSignalLabel().text}</span>
+                    </div>
+                    <div className="ds-row"><span>Hora GPS</span><span>{formatUtcTime(gpsRaw.time)}</span></div>
+                    <div className="ds-row"><span>Fecha GPS</span><span>{formatUtcDate(gpsRaw.date)}</span></div>
+                    <div className="ds-row"><span>Satélites visibles</span><span>{gpsRaw.sats_visible ?? "—"}</span></div>
+                    <div className="ds-row"><span>Satélites usados</span><span>{gpsRaw.sats_used ?? "—"}</span></div>
+                  </>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      {/* ── Tabla de dispositivos ────────────────────────────────────────── */}
-      <h2>Device Status</h2>
-      <table className="device-status-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>IP Address</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {devices.map((device, index) => (
-            <tr key={index}>
-              <td>{device.name}</td>
-              <td>{device.ip || "N/A"}</td>
-              <td className={getStatusClass(device.status || "unknown")}>
-                {device.status || "unknown"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {/* ── GPS live panel ───────────────────────────────────── */}
+      <div className="ds-nmea-panel">
+        <div className="ds-nmea-header">
+          <span>🛰️ GPS en vivo — COM3</span>
+          {gpsRaw?.updated && (
+            <span className="ds-nmea-ts">
+              {new Date(gpsRaw.updated).toLocaleTimeString()}
+            </span>
+          )}
+        </div>
+        {gpsRaw?.error ? (
+          <p className="ds-nmea-error">{gpsRaw.error}</p>
+        ) : gpsRaw ? (
+          <div className="ds-nmea-body">
+            <span>Fix: <b>{gpsRaw.fix ? "Activo ✅" : "Sin fix ⏳"}</b></span>
+            <span>Satélites: <b>{gpsRaw.sats_visible ?? "—"} visibles / {gpsRaw.sats_used ?? "—"} usados</b></span>
+            <span>UTC: <b>{formatUtcTime(gpsRaw.time)}</b></span>
+            <span>Válido: <b>{gpsRaw.valid ? "Sí ✅" : "No (buscando señal)"}</b></span>
+          </div>
+        ) : (
+          <p className="ds-nmea-waiting">Esperando datos del puerto serial…</p>
+        )}
+      </div>
     </div>
   );
 };

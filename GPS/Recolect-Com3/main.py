@@ -2,6 +2,7 @@ import sys
 import serial
 import threading
 import logging
+from datetime import datetime
 from flask import Flask, jsonify
 
 SERIAL_PORT = 'COM3'
@@ -13,6 +14,7 @@ PORT_OPEN_RETRIES = 10
 PORT_OPEN_DELAY = 5  # seconds between retries
 
 gps_data_store = {}
+last_sentences = {}   # keyed by NMEA sentence type, value is list of fields
 
 flask_app = Flask(__name__)
 
@@ -44,6 +46,29 @@ def api_gps_status():
         for device_id, data in gps_data_store.items()
     ]
     return jsonify(statuses)
+
+
+@flask_app.route('/api/gps-raw', methods=['GET'])
+def api_gps_raw():
+    rmc = last_sentences.get('GNRMC') or last_sentences.get('GPRMC')
+    gsv = last_sentences.get('GPGSV') or last_sentences.get('GLGSV')
+    gga = last_sentences.get('GNGGA') or last_sentences.get('GPGGA')
+
+    result = {'updated': datetime.now().isoformat()}
+
+    if rmc and len(rmc) > 2:
+        result['time']  = rmc[1] if rmc[1] else None
+        result['valid'] = rmc[2] == 'A'
+        result['date']  = rmc[9] if len(rmc) > 9 and rmc[9] else None
+
+    if gsv and len(gsv) > 3:
+        result['sats_visible'] = int(gsv[3]) if gsv[3].isdigit() else 0
+
+    if gga and len(gga) > 7:
+        result['fix']       = int(gga[6]) if gga[6].isdigit() else 0
+        result['sats_used'] = int(gga[7]) if gga[7].isdigit() else 0
+
+    return jsonify(result)
 
 
 # ── GPS logic (shared between GUI and headless) ───────────────────────────────
@@ -108,6 +133,13 @@ def open_serial_with_retry():
     sys.exit(1)
 
 
+def _track_sentence(line):
+    parts = line.split(',')
+    if parts:
+        key = parts[0].lstrip('$')
+        last_sentences[key] = parts
+
+
 def read_serial_loop(ser, stop_event, on_line=None):
     """Read serial data until stop_event is set. Calls on_line(text) for each line (GUI hook)."""
     while not stop_event.is_set():
@@ -115,6 +147,7 @@ def read_serial_loop(ser, stop_event, on_line=None):
             if ser.in_waiting > 0:
                 line = ser.readline().decode('utf-8', errors='replace').strip()
                 log.info(f"GPS: {line}")
+                _track_sentence(line)
                 if on_line:
                     on_line(line)
                 parsed = parse_gps_data(line)
