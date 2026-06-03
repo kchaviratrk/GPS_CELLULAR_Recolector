@@ -10,16 +10,16 @@ where uv >nul 2>&1
 if %ERRORLEVEL% neq 0 (
     echo UV no encontrado. Instalando UV...
     powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-    set "PATH=%APPDATA%\uv\bin;%USERPROFILE%\.local\bin;%PATH%"
-    where uv >nul 2>&1
-    if %ERRORLEVEL% neq 0 (
-        echo [ERROR] No se pudo instalar UV. Instalalo manualmente:
-        echo   https://docs.astral.sh/uv/getting-started/installation/
-        pause
-        exit /b 1
-    )
-    echo UV instalado correctamente.
+    set "PATH=%USERPROFILE%\.local\bin;%APPDATA%\uv\bin;%PATH%"
 )
+uv --version >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo [ERROR] UV no disponible. Instalalo manualmente y reinicia el terminal:
+    echo   https://docs.astral.sh/uv/getting-started/installation/
+    pause
+    exit /b 1
+)
+echo UV listo.
 
 REM ── 1. Dependencias Python (UV) ──────────────────────────────
 echo Sincronizando dependencias Python...
