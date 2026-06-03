@@ -6,18 +6,30 @@ REM ============================================================
 cd /d "%~dp0"
 
 REM ── 1. Dependencias Python (UV) ──────────────────────────────
-echo Sincronizando dependencias Python con UV...
+echo Sincronizando dependencias Python...
 cd Recolect-Com3
 uv sync
 cd ..
 
-REM ── 2. GPS Collector: Python headless, COM3 + Flask en :3000 ─
+REM ── 2. Dependencias Node.js (backend) ────────────────────────
+echo Sincronizando dependencias backend...
+cd backend
+npm install
+cd ..
+
+REM ── 3. Dependencias Node.js (frontend) ───────────────────────
+echo Sincronizando dependencias frontend...
+cd frontend
+npm install
+cd ..
+
+REM ── 4. GPS Collector: Python headless, COM3 + Flask en :3000 ─
 start "GPS-Collector" cmd /k "cd Recolect-Com3 && uv run python main.py --headless"
 
-REM ── 3. Backend Node.js en :5000 ──────────────────────────────
+REM ── 5. Backend Node.js en :5000 ──────────────────────────────
 start "GPS-Backend" cmd /k "cd backend && node server.js"
 
-REM ── 4. Frontend React en :5173 ───────────────────────────────
+REM ── 6. Frontend React en :5173 ───────────────────────────────
 start "GPS-Frontend" cmd /k "cd frontend && npm run dev"
 
 echo.
