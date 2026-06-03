@@ -1,41 +1,66 @@
-/* Actualización de colores y estilos para reflejar la identidad de la empresa */
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Fira+Sans:wght@300;400;500;600&display=swap');
+
+/* ── Design tokens ───────────────────────────────────────────── */
 :root {
-  font-family: "Roboto", sans-serif;
+  --bg:              #0F172A;
+  --surface:         #1E293B;
+  --surface-2:       #272F42;
+  --border:          #334155;
+  --border-strong:   #475569;
+
+  --text-primary:    #F8FAFC;
+  --text-secondary:  #CBD5E1;
+  --text-muted:      #64748B;
+
+  --accent:          #22C55E;
+  --accent-dim:      rgba(34, 197, 94, 0.10);
+  --accent-border:   rgba(34, 197, 94, 0.30);
+  --accent-glow:     0 0 16px rgba(34, 197, 94, 0.25);
+
+  --warning:         #F59E0B;
+  --warning-dim:     rgba(245, 158, 11, 0.10);
+  --warning-border:  rgba(245, 158, 11, 0.30);
+
+  --danger:          #EF4444;
+  --danger-dim:      rgba(239, 68, 68, 0.10);
+  --danger-border:   rgba(239, 68, 68, 0.30);
+
+  --radius:          10px;
+  --radius-lg:       14px;
+
+  font-family: 'Fira Sans', system-ui, sans-serif;
+  font-size: 16px;
   line-height: 1.6;
-  font-weight: 400;
-  color: #ffffff; /* Cambiar el color de las letras a blanco */
-  background-color: #f9f9f9;
-  --primary-color: #000000; /* Negro */
-  --secondary-color: #ff0000; /* Rojo */
-  --accent-color: #808080; /* Gris */
+  color-scheme: dark;
 }
+
+/* ── Reset ───────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  margin: 0;
-  padding: 0;
+  background: var(--bg);
+  color: var(--text-primary);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100dvh;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  background-color: var(--primary-color);
-  color: var(--accent-color);
+  flex-direction: column;
 }
 
-h1 {
-  font-size: 2.5rem;
-  color: var(--secondary-color);
-}
+button { font-family: inherit; }
 
-button {
-  background-color: var(--secondary-color);
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
+/* ── Scrollbar ───────────────────────────────────────────────── */
+::-webkit-scrollbar        { width: 5px; }
+::-webkit-scrollbar-track  { background: var(--bg); }
+::-webkit-scrollbar-thumb  { background: var(--border-strong); border-radius: 3px; }
 
-button:hover {
-  background-color: #cc0000; /* Rojo oscuro */
+/* ── Reduced motion ──────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

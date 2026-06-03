@@ -1,139 +1,255 @@
-/* ── Layout ──────────────────────────────────────────────────── */
-.ds-container {
-  max-width: 960px;
-  margin: 32px auto;
-  padding: 0 16px;
+/* ── Layout ─────────────────────────────────────────────────── */
+.ds-wrap {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 28px 20px 40px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
 }
 
 .ds-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
 }
 
-/* ── Cards ───────────────────────────────────────────────────── */
+/* ── Card ───────────────────────────────────────────────────── */
 .ds-card {
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  transition: box-shadow 0.2s;
+  transition: border-color 200ms, box-shadow 200ms;
 }
 
 .ds-card:hover {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.13);
+  border-color: var(--border-strong);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
 }
 
-.ds-card-header {
+/* ── Card header ────────────────────────────────────────────── */
+.ds-card-head {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 16px 18px 12px;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--border);
 }
 
-.ds-icon { font-size: 1.4rem; }
+.ds-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--surface-2);
+  border-radius: 8px;
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
 
-.ds-name {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #1e293b;
+.ds-icon-svg {
+  width: 16px;
+  height: 16px;
+}
+
+.ds-device-name {
   flex: 1;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
 }
 
+/* ── Card body ──────────────────────────────────────────────── */
 .ds-card-body {
-  padding: 12px 18px 16px;
+  padding: 12px 16px 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
 }
 
 .ds-row {
   display: flex;
   justify-content: space-between;
-  font-size: 0.875rem;
-  color: #64748b;
+  align-items: center;
+  gap: 8px;
 }
 
-.ds-row span:last-child {
+.ds-row dt {
+  font-size: 0.75rem;
+  color: var(--text-muted);
   font-weight: 500;
-  color: #334155;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ds-row dd {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
   text-align: right;
 }
 
-/* ── Status badges ───────────────────────────────────────────── */
+.mono {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.8rem !important;
+  color: var(--text-primary) !important;
+}
+
+.sat-count { color: var(--text-primary); font-weight: 600; }
+.sat-sep   { color: var(--text-muted); font-size: 0.72rem; }
+
+/* ── Badges ─────────────────────────────────────────────────── */
 .ds-badge {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   padding: 3px 10px;
   border-radius: 999px;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 600;
   white-space: nowrap;
+  letter-spacing: 0.03em;
+  border-width: 1px;
+  border-style: solid;
 }
 
 .ds-badge::before {
   content: "";
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: currentColor;
-  display: inline-block;
+  flex-shrink: 0;
 }
 
-.badge-online    { background: #dcfce7; color: #16a34a; }
-.badge-offline   { background: #fee2e2; color: #dc2626; }
-.badge-unknown   { background: #f1f5f9; color: #94a3b8; }
-.badge-searching { background: #fef3c7; color: #d97706;
-                   animation: blink 1.4s ease-in-out infinite; }
+.ds-badge-sm {
+  padding: 2px 8px;
+  font-size: 0.68rem;
+}
 
-@keyframes blink {
+.badge-online {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent-border);
+}
+
+.badge-online::before {
+  box-shadow: 0 0 6px var(--accent);
+}
+
+.badge-offline {
+  background: var(--danger-dim);
+  color: var(--danger);
+  border-color: var(--danger-border);
+}
+
+.badge-searching {
+  background: var(--warning-dim);
+  color: var(--warning);
+  border-color: var(--warning-border);
+  animation: pulse-badge 1.6s ease-in-out infinite;
+}
+
+.badge-unknown {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+
+@keyframes pulse-badge {
   0%, 100% { opacity: 1; }
-  50%       { opacity: 0.5; }
+  50%       { opacity: 0.55; }
 }
 
-/* ── GPS live panel ──────────────────────────────────────────── */
-.ds-nmea-panel {
-  background: #0f172a;
-  border-radius: 12px;
-  padding: 18px 22px;
-  color: #94a3b8;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+/* ── GPS live panel ─────────────────────────────────────────── */
+.ds-nmea {
+  background: #0A1628;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
 }
 
-.ds-nmea-header {
+.ds-nmea-head {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #cbd5e1;
+  justify-content: space-between;
   margin-bottom: 14px;
+}
+
+.ds-nmea-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
+}
+
+.ds-nmea-title svg {
+  color: var(--accent);
+  flex-shrink: 0;
 }
 
 .ds-nmea-ts {
-  font-weight: 400;
-  color: #475569;
-  font-size: 0.8rem;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.72rem;
+  color: var(--text-muted);
 }
 
-.ds-nmea-body {
+.ds-nmea-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px 24px;
+}
+
+.ds-nmea-item {
   display: flex;
-  flex-wrap: wrap;
-  gap: 16px 32px;
-  font-size: 0.9rem;
-  font-family: monospace;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.ds-nmea-body span { color: #94a3b8; }
-.ds-nmea-body b    { color: #4ade80; }
+.ds-nmea-label {
+  font-size: 0.67rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 500;
+}
 
-.ds-nmea-error   { color: #f87171; font-size: 0.9rem; margin: 0; }
-.ds-nmea-waiting { color: #475569; font-size: 0.9rem; margin: 0;
-                   animation: blink 1.4s ease-in-out infinite; }
+.ds-nmea-value {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.val-ok   { color: var(--accent) !important; }
+.val-warn { color: var(--warning) !important; }
+
+.ds-nmea-error {
+  font-size: 0.82rem;
+  color: var(--danger);
+  font-family: 'Fira Code', monospace;
+}
+
+.ds-nmea-waiting {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-family: 'Fira Code', monospace;
+  animation: pulse-badge 1.6s ease-in-out infinite;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .ds-wrap { padding: 16px 14px 32px; }
+  .ds-grid { grid-template-columns: 1fr; }
+  .ds-nmea-grid { grid-template-columns: 1fr 1fr; }
+}
