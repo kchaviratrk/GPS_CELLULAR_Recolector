@@ -38,6 +38,7 @@ const App = () => {
           src="https://trackonomy.ai/wp-content/uploads/2023/06/logo.png"
           alt="Trackonomy"
           className="app-header-logo"
+          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
         />
         <div className="app-header-divider" aria-hidden="true" />
         <div className="app-header-title">
