@@ -106,11 +106,11 @@ const logBTSDevices = async () => {
 // Call the log function periodically
 setInterval(logBTSDevices, 5000);
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5050;
 const server = app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 server.on("error", (err) => {
   if (err.code === "EADDRINUSE") {
-    console.error(`[ERROR] Puerto ${PORT} ya está en uso. Cierra la otra instancia del backend y vuelve a intentarlo.`);
+    console.error(`[ERROR] Puerto ${PORT} ya está en uso. Cierra la otra instancia y vuelve a intentarlo.`);
     process.exit(1);
   } else {
     throw err;
