@@ -11,7 +11,10 @@ FLASK_PORT = 3000
 
 # Retry settings for port open at boot (USB-serial adapters can take a few seconds)
 PORT_OPEN_RETRIES = 10
-PORT_OPEN_DELAY = 5  # seconds between retries
+PORT_OPEN_DELAY = 5   # seconds between retries
+
+# Auto-restart: seconds to wait before reconnecting after a disconnect
+RECONNECT_DELAY = 10
 
 gps_data_store = {}
 last_sentences = {}   # keyed by NMEA sentence type, value is list of fields
@@ -118,7 +121,7 @@ def evaluate_gps_status(gps_data):
 
 
 def open_serial_with_retry():
-    """Open SERIAL_PORT, retrying on failure to handle boot-time USB enumeration delays."""
+    """Open SERIAL_PORT, retrying on failure. Returns None if all attempts fail."""
     import time
     for attempt in range(1, PORT_OPEN_RETRIES + 1):
         try:
@@ -129,8 +132,8 @@ def open_serial_with_retry():
             log.warning(f"Attempt {attempt}/{PORT_OPEN_RETRIES}: cannot open {SERIAL_PORT} — {e}")
             if attempt < PORT_OPEN_RETRIES:
                 time.sleep(PORT_OPEN_DELAY)
-    log.critical(f"Could not open {SERIAL_PORT} after {PORT_OPEN_RETRIES} attempts. Exiting.")
-    sys.exit(1)
+    log.error(f"Could not open {SERIAL_PORT} after {PORT_OPEN_RETRIES} attempts.")
+    return None
 
 
 def _track_sentence(line):
@@ -171,18 +174,42 @@ def start_flask_thread():
 # ── Headless mode (production / Windows Service / scheduled task) ─────────────
 
 def run_headless():
+    import time
     log.info("Starting GPS collector in headless mode")
-    ser = open_serial_with_retry()
+
+    # Flask starts once and stays running across serial reconnections
     start_flask_thread()
-    stop_event = threading.Event()
-    try:
-        read_serial_loop(ser, stop_event)
-    except KeyboardInterrupt:
-        log.info("Interrupted — shutting down")
-    finally:
-        stop_event.set()
-        ser.close()
-        log.info("Serial port closed")
+
+    while True:
+        ser = open_serial_with_retry()
+        if ser is None:
+            log.warning(f"COM3 no disponible — reintentando en {RECONNECT_DELAY}s...")
+            time.sleep(RECONNECT_DELAY)
+            continue
+
+        stop_event = threading.Event()
+        log.info(f"Recolección GPS iniciada en {SERIAL_PORT}")
+        try:
+            read_serial_loop(ser, stop_event)
+        except KeyboardInterrupt:
+            log.info("Interrumpido — cerrando")
+            stop_event.set()
+            try:
+                ser.close()
+            except Exception:
+                pass
+            break
+        except Exception as e:
+            log.error(f"Error inesperado en el loop de lectura: {e}")
+        finally:
+            stop_event.set()
+            try:
+                ser.close()
+            except Exception:
+                pass
+
+        log.warning(f"GPS desconectado — reconectando en {RECONNECT_DELAY}s...")
+        time.sleep(RECONNECT_DELAY)
 
 
 # ── GUI mode (development / manual use) ──────────────────────────────────────
