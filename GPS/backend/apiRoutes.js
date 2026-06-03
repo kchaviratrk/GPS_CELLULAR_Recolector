@@ -16,7 +16,15 @@ function deviceRoute(name) {
   return async (req, res) => {
     const device = devices.find((d) => d.name === name);
     if (!device) return res.status(404).json({ error: `${name} not found` });
-    if (!device.ip) return res.status(404).json({ error: `${name} has no IP configured` });
+
+    // Bypass: device is always considered online (e.g. Cellular inside the facility)
+    if (device.bypass) {
+      return res.json({ device: device.name, ip: device.ip || "N/A", status: "online" });
+    }
+
+    if (!device.ip) {
+      return res.json({ device: device.name, ip: "N/A", status: "offline" });
+    }
 
     const status = await checkDeviceStatus(device.ip);
     res.json({ device: device.name, ip: device.ip, status });

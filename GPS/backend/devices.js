@@ -1,7 +1,7 @@
 const devices = [
-  { name: "GPS 1",    ip: "192.168.1.1"  },
-  { name: "GPS 2",    ip: "192.168.1.3"  },
-  { name: "Cellular", ip: "192.168.1.2"  },
+  { name: "GPS 1",    ip: "192.168.27.117", bypass: false },
+  { name: "GPS 2",    ip: "",               bypass: false },
+  { name: "Cellular", ip: "",               bypass: true  },
 ];
 
 module.exports = { devices };
