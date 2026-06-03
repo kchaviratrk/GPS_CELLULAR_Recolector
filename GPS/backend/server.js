@@ -160,12 +160,11 @@ app.get("/metrics", async (req, res) => {
   res.end(await client.register.metrics());
 });
 
-// Crear una cola para manejar tareas asíncronas
+// Crear una cola para manejar tareas asíncronas (requiere Redis)
 const taskQueue = new Queue("taskQueue");
-
+taskQueue.on("error", (err) => logger.warn("Task queue (Redis) no disponible: " + err.message));
 taskQueue.process(async (job) => {
   console.log(`Procesando tarea: ${job.id}`);
-  // Lógica para manejar la tarea
 });
 
 // Endpoint para agregar tareas a la cola

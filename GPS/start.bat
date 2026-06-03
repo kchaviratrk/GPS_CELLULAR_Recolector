@@ -40,13 +40,13 @@ call npm install
 cd ..
 
 REM ── 4. GPS Collector: Python headless, COM3 + Flask en :3000 ─
-start "GPS-Collector" cmd /k "cd /d "%~dp0Recolect-Com3" && uv run python main.py --headless"
+start "GPS-Collector" /d "%~dp0Recolect-Com3" cmd /k "uv run python main.py --headless"
 
 REM ── 5. Backend Node.js en :5000 ──────────────────────────────
-start "GPS-Backend" cmd /k "cd /d "%~dp0backend" && node server.js"
+start "GPS-Backend" /d "%~dp0backend" cmd /k "node server.js"
 
 REM ── 6. Frontend React en :5173 ───────────────────────────────
-start "GPS-Frontend" cmd /k "cd /d "%~dp0frontend" && npm run dev"
+start "GPS-Frontend" /d "%~dp0frontend" cmd /k "npm run dev"
 
 echo.
 echo GPS Collector : http://localhost:3000/api/gps-status
