@@ -48,6 +48,10 @@ start "GPS-Backend" /d "%~dp0backend" cmd /k "node server.js"
 REM ── 6. Frontend React en :5173 ───────────────────────────────
 start "GPS-Frontend" /d "%~dp0frontend" cmd /k "npm run dev"
 
+REM ── 7. Abrir dashboard en el navegador (esperar 5s a que Vite levante) ──
+timeout /t 5 /nobreak >nul
+start "" "http://localhost:5173"
+
 echo.
 echo GPS Collector : http://localhost:3000/api/gps-status
 echo Backend API   : http://localhost:5000/api/gps-serial
