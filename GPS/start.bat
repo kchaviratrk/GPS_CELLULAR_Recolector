@@ -5,6 +5,22 @@ REM  Ejecutar una sola vez para arrancar todo el sistema.
 REM ============================================================
 cd /d "%~dp0"
 
+REM ── 0. Instalar UV si no está en el sistema ───────────────────
+where uv >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo UV no encontrado. Instalando UV...
+    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+    set "PATH=%APPDATA%\uv\bin;%USERPROFILE%\.local\bin;%PATH%"
+    where uv >nul 2>&1
+    if %ERRORLEVEL% neq 0 (
+        echo [ERROR] No se pudo instalar UV. Instalalo manualmente:
+        echo   https://docs.astral.sh/uv/getting-started/installation/
+        pause
+        exit /b 1
+    )
+    echo UV instalado correctamente.
+)
+
 REM ── 1. Dependencias Python (UV) ──────────────────────────────
 echo Sincronizando dependencias Python...
 cd Recolect-Com3
