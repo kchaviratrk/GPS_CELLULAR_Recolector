@@ -31,8 +31,7 @@ function deviceRoute(name) {
   };
 }
 
-router.get("/gps1-status",    deviceRoute("GPS 1"));
-router.get("/gps2-status",    deviceRoute("GPS 2"));
+router.get("/gps1-status",     deviceRoute("GPS 1"));
 router.get("/cellular-status", deviceRoute("Cellular"));
 
 router.get("/devices", (req, res) => res.json(devices));
