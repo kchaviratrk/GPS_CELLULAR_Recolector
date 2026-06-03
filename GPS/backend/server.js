@@ -23,8 +23,7 @@ const Queue = require("bull");
 const swaggerUi = require("swagger-ui-express");
 const swaggerJsDoc = require("swagger-jsdoc");
 
-// Reemplazar las importaciones de IP.js con devices.js
-const devices = require("./devices");
+const { devices } = require("./devices");
 
 const app = express();
 app.use(cors());

@@ -1,7 +1,7 @@
 // Crear un archivo separado para las rutas de API y mover las rutas relacionadas con las APIs a ese archivo.
 const express = require("express");
 const router = express.Router();
-const devices = require("./devices");
+const { devices } = require("./devices");
 const { body, validationResult } = require("express-validator");
 
 // Middleware para validar y sanitizar entradas
