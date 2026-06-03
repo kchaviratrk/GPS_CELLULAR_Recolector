@@ -224,13 +224,15 @@ const swaggerOptions = {
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
-// Heartbeat job: actualiza lastHeartBeat cada 10 minutos en Azure SQL
+// Heartbeat — envía lastHeartBeat a Azure SQL para cada dispositivo
 const { poolPromise } = require("./db");
 
-async function sendHeartbeat() {
+const HEARTBEAT_DEVICES = ["GPS01", "Celullar01"];
+const HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000; // 5 minutos
+
+async function sendHeartbeatFor(hardwareID) {
   try {
     const pool = await poolPromise;
-    const hardwareID = "GPS01"; // Cambia si tu hardwareID es diferente
     const timestamp = Date.now();
     await pool
       .request()
@@ -239,20 +241,28 @@ async function sendHeartbeat() {
       .query(
         "UPDATE trk.hardware SET lastHeartBeat = @lastHeartBeat WHERE hardwareID = @hardwareID"
       );
-    logger.info(`Heartbeat enviado para ${hardwareID} en ${timestamp}`);
+    logger.info(`Heartbeat enviado para ${hardwareID}`);
   } catch (err) {
-    logger.error("Error enviando heartbeat:", err);
+    logger.error(`Error enviando heartbeat para ${hardwareID}:`, err);
   }
 }
 
-// Ejecutar cada 10 minutos (600,000 ms)
-setInterval(sendHeartbeat, 600000);
+async function sendAllHeartbeats() {
+  for (const id of HEARTBEAT_DEVICES) {
+    await sendHeartbeatFor(id);
+  }
+}
 
-// Endpoint para forzar el heartbeat manualmente
+// Enviar al arrancar (sin esperar el primer intervalo)
+sendAllHeartbeats();
+// Repetir cada 5 minutos
+setInterval(sendAllHeartbeats, HEARTBEAT_INTERVAL_MS);
+
+// Endpoint para forzar heartbeat manual
 app.post("/api/heartbeat", async (req, res) => {
   try {
-    await sendHeartbeat();
-    res.status(200).json({ message: "Heartbeat enviado manualmente" });
+    await sendAllHeartbeats();
+    res.status(200).json({ message: "Heartbeat enviado manualmente para todos los dispositivos" });
   } catch (err) {
     logger.error("Error enviando heartbeat manual:", err);
     res.status(500).json({ error: "Error enviando heartbeat manual" });
