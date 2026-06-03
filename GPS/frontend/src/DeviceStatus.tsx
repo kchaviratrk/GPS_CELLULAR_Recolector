@@ -1,22 +1,28 @@
 import { useEffect, useState } from "react";
 
-// Define the type for a device
 interface Device {
   name: string;
   ip: string;
   status?: string;
 }
 
+interface GpsSerial {
+  raw: string;
+  timestamp: string;
+}
+
 const DeviceStatus = () => {
   const [devices, setDevices] = useState<Device[]>([]);
+  const [gpsSerial, setGpsSerial] = useState<GpsSerial | null>(null);
+  const [gpsError, setGpsError] = useState<string | null>(null);
 
+  // Fetch device list + ping status once on mount
   useEffect(() => {
     const fetchDevices = async () => {
       try {
         const response = await fetch("/api/devices");
         const data: Device[] = await response.json();
 
-        // Fetch status for each device
         const devicesWithStatus = await Promise.all(
           data.map(async (device: Device) => {
             if (device.ip) {
@@ -43,23 +49,57 @@ const DeviceStatus = () => {
     fetchDevices();
   }, []);
 
+  // Poll live GPS serial data every 5 seconds
+  useEffect(() => {
+    const fetchGps = async () => {
+      try {
+        const res = await fetch("/api/gps-serial");
+        if (res.ok) {
+          const data: GpsSerial = await res.json();
+          setGpsSerial(data);
+          setGpsError(null);
+        } else {
+          const err = await res.json();
+          setGpsError(err.error);
+        }
+      } catch {
+        setGpsError("No se pudo conectar al backend");
+      }
+    };
+
+    fetchGps();
+    const interval = setInterval(fetchGps, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   const getStatusClass = (status: string) => {
     switch (status) {
-      case "online":
-        return "status-online";
-      case "offline":
-        return "status-offline";
-      case "unknown":
-        return "status-unknown";
-      case "no ip":
-        return "status-no-ip";
-      default:
-        return "status-unknown";
+      case "online":  return "status-online";
+      case "offline": return "status-offline";
+      case "unknown": return "status-unknown";
+      case "no ip":   return "status-no-ip";
+      default:        return "status-unknown";
     }
   };
 
   return (
     <div className="device-status-container">
+      {/* ── GPS en vivo ─────────────────────────────────────────────────── */}
+      <div className="gps-live-panel">
+        <h3>GPS en vivo — COM3</h3>
+        {gpsError ? (
+          <p className="gps-live-error">{gpsError}</p>
+        ) : gpsSerial ? (
+          <>
+            <p className="gps-live-raw">{gpsSerial.raw}</p>
+            <p className="gps-live-ts">Última lectura: {new Date(gpsSerial.timestamp).toLocaleTimeString()}</p>
+          </>
+        ) : (
+          <p className="gps-live-waiting">Esperando datos del puerto serial...</p>
+        )}
+      </div>
+
+      {/* ── Tabla de dispositivos ────────────────────────────────────────── */}
       <h2>Device Status</h2>
       <table className="device-status-table">
         <thead>

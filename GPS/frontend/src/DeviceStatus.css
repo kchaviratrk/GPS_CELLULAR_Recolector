@@ -67,3 +67,47 @@
   color: var(--secondary-color);
   margin-bottom: 20px;
 }
+
+/* ── GPS en vivo panel ─────────────────────────────────────────────────────── */
+.gps-live-panel {
+  background: #1a1a2e;
+  color: #00ff88;
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-bottom: 24px;
+  font-family: monospace;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.gps-live-panel h3 {
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #aaffcc;
+}
+
+.gps-live-raw {
+  font-size: 0.95rem;
+  word-break: break-all;
+  margin: 0 0 6px;
+}
+
+.gps-live-ts {
+  font-size: 0.75rem;
+  color: #66ccaa;
+  margin: 0;
+}
+
+.gps-live-error {
+  color: #ff6b6b;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.gps-live-waiting {
+  color: #888;
+  margin: 0;
+  font-size: 0.9rem;
+  animation: blink 1.5s infinite;
+}

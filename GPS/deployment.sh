@@ -11,36 +11,42 @@ cd ..
 cd frontend
 echo "Instalando dependencias frontend..."
 npm install
-# Construir frontend para producción
 echo "Construyendo frontend..."
 npm run build
 cd ..
 
-# Instalar dependencias Python (si existe requirements.txt)
+# Instalar dependencias Python
 if [ -d "Recolect-Com3" ]; then
-  cd Recolect-Com3
-  if [ -f "requirements.txt" ]; then
-    echo "Instalando dependencias Python..."
-    python3 -m venv venv
-    source venv/bin/activate
-    pip install -r requirements.txt
-  fi
-  cd ..
+    cd Recolect-Com3
+    if [ -f "requirements.txt" ]; then
+        echo "Instalando dependencias Python..."
+        python3 -m venv venv
+        source venv/bin/activate
+        pip install -r requirements.txt
+    fi
+    cd ..
 fi
 
 # Arrancar backend en background
 cd backend
 nohup node server.js > ../backend.log 2>&1 &
+echo "Backend iniciado (PID $!)"
 cd ..
 
-# Arrancar proceso Python en background (si existe main.py)
+# Arrancar GPS collector en modo headless
 if [ -f "Recolect-Com3/main.py" ]; then
-  cd Recolect-Com3
-  if [ -d "venv" ]; then
-    source venv/bin/activate
-  fi
-  nohup python3 main.py > ../python.log 2>&1 &
-  cd ..
+    cd Recolect-Com3
+    PYTHON="python3"
+    if [ -f "venv/bin/python3" ]; then
+        PYTHON="venv/bin/python3"
+    fi
+    nohup "$PYTHON" main.py --headless > ../python.log 2>&1 &
+    echo "GPS collector iniciado en headless (PID $!)"
+    cd ..
 fi
 
-echo "Despliegue completo. Backend y proceso Python corriendo en background."
+echo ""
+echo "Despliegue completo."
+echo "  Backend  : http://localhost:5000"
+echo "  GPS API  : http://localhost:3000/api/gps-status"
+echo "  Log      : python.log / gps_collector.log"

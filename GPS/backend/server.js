@@ -81,6 +81,17 @@ app.get("/api/devices", (req, res) => {
   res.json(devices);
 });
 
+// GPS data — proxied from the Python GPS collector (localhost:3000)
+app.get("/api/gps-serial", async (req, res) => {
+  try {
+    const response = await fetch("http://localhost:3000/api/gps-status");
+    const data = await response.json();
+    res.json(data);
+  } catch {
+    res.status(503).json({ error: "GPS collector offline — verifica que Python este corriendo" });
+  }
+});
+
 // Update logBTSDevices to include ping status
 const logBTSDevices = async () => {
   const btsDevices = devices.filter((device) => device.name.startsWith("BTS"));
@@ -110,7 +121,6 @@ const logger = winston.createLogger({
   ],
 });
 
-// Ejemplo de uso de logger
 logger.info("Servidor iniciado");
 
 // Middleware de registro

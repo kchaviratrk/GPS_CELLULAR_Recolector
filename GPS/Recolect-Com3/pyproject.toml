@@ -1,0 +1,8 @@
+[project]
+name = "gps-collector"
+version = "0.1.0"
+requires-python = ">=3.9"
+dependencies = [
+    "flask>=3.0",
+    "pyserial>=3.5",
+]
