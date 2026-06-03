@@ -14,6 +14,10 @@ interface GpsRaw {
   sats_visible?: number;
   fix?: number;
   sats_used?: number;
+  lat?: number;
+  lon?: number;
+  altitude_m?: number;
+  speed_kmh?: number;
   updated?: string;
   error?: string;
 }
@@ -163,11 +167,29 @@ const DeviceStatus = () => {
                       <dt>Satélites</dt>
                       <dd className="mono">
                         <span className="sat-count">{gpsRaw.sats_visible ?? "—"}</span>
-                        <span className="sat-sep"> visibles / </span>
+                        <span className="sat-sep"> vis / </span>
                         <span className="sat-count">{gpsRaw.sats_used ?? "—"}</span>
                         <span className="sat-sep"> usados</span>
                       </dd>
                     </div>
+                    {gpsRaw.lat != null && (
+                      <div className="ds-row">
+                        <dt>Lat / Lon</dt>
+                        <dd className="mono coord">{gpsRaw.lat.toFixed(5)}° / {gpsRaw.lon!.toFixed(5)}°</dd>
+                      </div>
+                    )}
+                    {gpsRaw.altitude_m != null && (
+                      <div className="ds-row">
+                        <dt>Altitud</dt>
+                        <dd className="mono">{gpsRaw.altitude_m.toFixed(1)} m</dd>
+                      </div>
+                    )}
+                    {gpsRaw.speed_kmh != null && (
+                      <div className="ds-row">
+                        <dt>Velocidad</dt>
+                        <dd className="mono">{gpsRaw.speed_kmh} km/h</dd>
+                      </div>
+                    )}
                   </>
                 )}
 

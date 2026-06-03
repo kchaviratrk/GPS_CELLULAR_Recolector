@@ -101,6 +101,7 @@
 
 .sat-count { color: var(--text-primary); font-weight: 600; }
 .sat-sep   { color: var(--text-muted); font-size: 0.72rem; }
+.coord     { color: var(--accent) !important; font-size: 0.78rem !important; }
 
 /* ── Badges ─────────────────────────────────────────────────── */
 .ds-badge {

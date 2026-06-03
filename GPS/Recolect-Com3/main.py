@@ -51,6 +51,20 @@ def api_gps_status():
     return jsonify(statuses)
 
 
+def _nmea_to_decimal(value, direction):
+    """Convert NMEA DDMM.MMMM / DDDMM.MMMM to decimal degrees."""
+    if not value:
+        return None
+    try:
+        dot = value.index('.')
+        deg = float(value[:dot - 2])
+        mins = float(value[dot - 2:])
+        dec = deg + mins / 60.0
+        return round(-dec if direction in ('S', 'W') else dec, 6)
+    except (ValueError, IndexError):
+        return None
+
+
 @flask_app.route('/api/gps-raw', methods=['GET'])
 def api_gps_raw():
     rmc = last_sentences.get('GNRMC') or last_sentences.get('GPRMC')
@@ -63,13 +77,26 @@ def api_gps_raw():
         result['time']  = rmc[1] if rmc[1] else None
         result['valid'] = rmc[2] == 'A'
         result['date']  = rmc[9] if len(rmc) > 9 and rmc[9] else None
+        if rmc[2] == 'A' and len(rmc) > 6:
+            result['lat'] = _nmea_to_decimal(rmc[3], rmc[4]) if rmc[3] else None
+            result['lon'] = _nmea_to_decimal(rmc[5], rmc[6]) if rmc[5] else None
+        if len(rmc) > 7 and rmc[7]:
+            try:
+                result['speed_kmh'] = round(float(rmc[7]) * 1.852, 1)
+            except ValueError:
+                pass
 
     if gsv and len(gsv) > 3:
         result['sats_visible'] = int(gsv[3]) if gsv[3].isdigit() else 0
 
-    if gga and len(gga) > 7:
+    if gga and len(gga) > 9:
         result['fix']       = int(gga[6]) if gga[6].isdigit() else 0
         result['sats_used'] = int(gga[7]) if gga[7].isdigit() else 0
+        if gga[9]:
+            try:
+                result['altitude_m'] = float(gga[9])
+            except ValueError:
+                pass
 
     return jsonify(result)
 
